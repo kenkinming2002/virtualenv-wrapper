@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+import hashlib
+import os
+import shlex
+import shutil
+import sys
+import venv
+
+def get_cache_home() -> str:
+    try:
+        return f'{os.environ['XDG_CACHE_HOME']}/.cache/virtualenv-wrapper'
+    except KeyError:
+        try:
+            return f'{os.environ['HOME']}/.cache/virtualenv-wrapper'
+        except KeyError:
+            raise AssertionError('Both environemntal variables XDG_CAHCE_HOME and HOME are not set. What kind of alien planet is this?')
+
+def create_venv(cache_dir: str, name: str) -> str:
+    env_dir = os.path.join(cache_dir, 'venvs', name)
+    if not os.path.exists(env_dir):
+        env_builder = venv.EnvBuilder(with_pip=True)
+        env_builder.create(env_dir)
+    return env_dir
+
+def venv_run(env_dir: str, command: str):
+    os.execvp('bash', ['bash', '-c', f'source {shlex.quote(os.path.join(env_dir, "bin/activate"))}; {command}'])
+
+def main():
+    cache_dir = get_cache_home()
+
+    python_path = os.path.join(cache_dir, 'python_path')
+    os.makedirs(python_path, exist_ok=True)
+    shutil.copy(__file__, os.path.join(python_path, 'virtualenv_wrapper.py'))
+
+    env_dir = create_venv(cache_dir, 'main')
+
+    command = ''
+    command += f'export PYTHONPATH="{shlex.quote(python_path)}:$PYTHONPATH";'
+    command += 'export VIRTUALENV_WRAPPER_SETUP=1;'
+    command += f'python {shlex.join(sys.argv[1:])};'
+
+    venv_run(env_dir, command)
+
+packages = []
+
+def begin_setup() -> bool:
+    value = os.environ['VIRTUALENV_WRAPPER_SETUP']
+    if value == '0': return False
+    if value == '1': return True
+    raise AssertionError(f'Unexpected value "{value}" set for environemtnal variable VIRTUALENV_WRAPPER_SETUP')
+
+def install(package: str) -> None:
+    packages.append(package)
+
+def end_setup():
+    cache_dir = get_cache_home()
+
+    digest = hashlib.sha256()
+    for package in packages:
+        digest.update(package.encode())
+    digest = digest.hexdigest()
+
+    env_dir = create_venv(cache_dir, digest)
+
+    command = ''
+    command += f'pip install --upgrade pip {shlex.join(packages)};'
+    command += 'export VIRTUALENV_WRAPPER_SETUP=0;'
+    command += f'python {shlex.quote(str(sys.modules['__main__'].__file__))} {shlex.join(sys.argv[1:])}'
+
+    venv_run(env_dir, command)
+
+if __name__ == '__main__':
+    main()
