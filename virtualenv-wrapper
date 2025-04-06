@@ -64,8 +64,13 @@ def end_setup():
 
     command = ''
     command += f'pip install --upgrade pip {shlex.join(packages)};'
-    command += 'export VIRTUALENV_WRAPPER_SETUP=0;'
-    command += f'python {shlex.quote(str(sys.modules['__main__'].__file__))} {shlex.join(sys.argv[1:])}'
+
+    virtualenv_wrapper_command = os.getenv('VIRTUALENV_WRAPPER_COMMAND')
+    if virtualenv_wrapper_command is None:
+        command += 'export VIRTUALENV_WRAPPER_SETUP=0;'
+        command += f'python {shlex.quote(str(sys.modules['__main__'].__file__))} {shlex.join(sys.argv[1:])}'
+    else:
+        command += f'{virtualenv_wrapper_command}'
 
     venv_run(env_dir, command)
 

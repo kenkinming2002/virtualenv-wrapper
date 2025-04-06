@@ -30,9 +30,15 @@ Copy [virtualenv-wrapper](virtualenv-wrapper) to somewhere under your PATH.
 ## Usage
 The code in [example.py](example.py) should provide a simple enough example.
 
-## Caveat
-Language servers for python will not be able to resolve installed packages
-because it is unaware of the transient virtual environment. In fact, since
-dependencies are completely specified in code, it is necessary to execute
-potentially untrusted code to resolve the virtual environment. This makes
-interop with language servers more difficult.
+## Executing Arbitrary Shell Command
+It is possible to execute arbitrary shell command under the created transient
+virtual environment by setting the environmental variable
+`VIRTUALENV_WRAPPER_SETUP`.
+```shell
+$ VIRTUALENV_WRAPPER_SETUP='<editor-command>' <script>
+```
+
+This can for example be used to execute your editor of choice under the created
+transient virtual environment such that the python language server will be able
+to locate installed python packages and provide code completion support.
+
