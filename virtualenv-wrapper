@@ -63,7 +63,7 @@ def end_setup():
     env_dir = create_venv(cache_dir, digest)
 
     command = ''
-    command += f'pip install --upgrade pip {shlex.join(packages)};'
+    command += f'pip install --upgrade pip {shlex.join(packages)} 1>&2;'
 
     virtualenv_wrapper_command = os.getenv('VIRTUALENV_WRAPPER_COMMAND')
     if virtualenv_wrapper_command is None:
